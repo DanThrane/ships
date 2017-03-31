@@ -172,30 +172,14 @@ class ShipsGame : ApplicationAdapter() {
     }
 
     private fun update(dt: Float) {
-        val isUpPressed = input.isKeyPressed(Input.Keys.W)
-        val isLeftPressed = input.isKeyPressed(Input.Keys.A)
-        val isRightPressed = input.isKeyPressed(Input.Keys.D)
-        val isDownPressed = input.isKeyPressed(Input.Keys.S)
-
-        if (isUpPressed) ship.speed.y += dt * 10
-        if (isDownPressed) ship.speed.y -= dt * 10
-        if (isRightPressed) ship.speed.x += dt * 10
-        if (isLeftPressed) ship.speed.x -= dt * 10
-
-        if (input.isKeyPressed(Input.Keys.RIGHT)) {
-            camera.translate(3f, 0f, 0f)
-        }
-        if (input.isKeyPressed(Input.Keys.LEFT)) {
-            camera.translate(-3f, 0f, 0f)
-        }
-        if (input.isKeyPressed(Input.Keys.UP)) {
-            camera.translate(0f, 3f, 0f)
-        }
-        if (input.isKeyPressed(Input.Keys.DOWN)) {
-            camera.translate(0f, -3f, 0f)
-        }
+        if (input.isKeyPressed(Input.Keys.W)) ship.speed.y += dt * 10
+        if (input.isKeyPressed(Input.Keys.S)) ship.speed.y -= dt * 10
+        if (input.isKeyPressed(Input.Keys.D)) ship.speed.x += dt * 10
+        if (input.isKeyPressed(Input.Keys.A)) ship.speed.x -= dt * 10
 
         ship.position.mulAdd(ship.speed, dt)
+        camera.position.x = ship.position.x
+        camera.position.y = ship.position.y
     }
 
     override fun dispose() {
