@@ -53,8 +53,6 @@ project(":core") {
         compile "com.badlogicgames.gdx:gdx:$gdxVersion"
         compile group: 'com.badlogicgames.ashley', name: 'ashley', version: '1.7.3'
         compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
-        compile "org.jetbrains.kotlin:kotlin-reflect:1.1.1"
-        compile "org.jetbrains.kotlin:kotlin-reflect:in-reflect:1.1.1"
     }
 }
 

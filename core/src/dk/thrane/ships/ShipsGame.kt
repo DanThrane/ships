@@ -14,6 +14,7 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import com.badlogic.gdx.Gdx.*
 import com.badlogic.gdx.graphics.g2d.Sprite
+import com.badlogic.gdx.math.MathUtils
 
 class SpriteSheet(
         resource: String,
@@ -107,11 +108,37 @@ class Ship {
     }
 
     fun render(batch: SpriteBatch) {
-        val angle = speed.angle()
+        val angle = speed.y * MathUtils.radiansToDegrees
 
         sprite.rotation = angle
         sprite.setPosition(position.x, position.y)
         sprite.draw(batch)
+    }
+}
+
+class Projectile {
+    val position = Vector2(0f, 0f)
+    val speed = Vector2(0f, 0f)
+    var active = false
+    var lifeRemaining = 0f
+    lateinit var sprite: Sprite
+
+    fun update(dt: Float) {
+        if (active) {
+            position.mulAdd(speed, dt)
+
+            lifeRemaining -= dt
+            if (lifeRemaining < 0) {
+                active = false
+            }
+        }
+    }
+
+    fun render(batch: SpriteBatch) {
+        if (active) {
+            sprite.setPosition(position.x, position.y)
+            sprite.draw(batch)
+        }
     }
 }
 
@@ -123,21 +150,33 @@ class ShipsGame : ApplicationAdapter() {
     lateinit var camera: OrthographicCamera
     lateinit var sheet: SpriteSheet
     lateinit var map: AsciiMap
+    lateinit var cannonball: Projectile
+    var isShooting = false
+    var isRebounding = false
+    var power = 0f
 
     override fun create() {
         batch = SpriteBatch()
         uiBatch = SpriteBatch()
         font = BitmapFont()
         ship = Ship()
+        cannonball = Projectile()
+        cannonball.sprite = Sprite(Texture("cannonBall.png"))
+        cannonball.sprite.setSize(0.25f, 0.25f)
+        cannonball.sprite.setOriginCenter()
 
         val h = Gdx.graphics.height
         val w = Gdx.graphics.width
-        camera = OrthographicCamera(30f, 30f * (h / w))
+        camera = OrthographicCamera(32f, 32f * (h / w))
         camera.position.set(camera.viewportWidth / 2f, camera.viewportHeight / 2f, 0f)
         camera.update()
 
-        sheet = SpriteSheet("tiles_sheet.png", 64, 64, widthInDestination = 1f, heightInDestination = 1f)
+        sheet = SpriteSheet("tiles_sheet.png", 64, 64, widthInDestination = 1.01f, heightInDestination = 1.01f)
         map = AsciiMap("map", sheet, 1f, 1f, asciiMapping(mapOf(
+                'Q' to 0,
+                'L' to 16,
+                'S' to 67,
+                'R' to 18,
                 'W' to 72
         )))
 
@@ -163,27 +202,78 @@ class ShipsGame : ApplicationAdapter() {
         batch.begin()
         map.render(batch, camera)
         ship.render(batch)
+        cannonball.render(batch)
         batch.end()
 
         uiBatch.begin()
         font.draw(uiBatch, "FPS ${Gdx.graphics.framesPerSecond}", 10f, 440f)
         font.draw(uiBatch, "Position: ${ship.position.x}, ${ship.position.y}", 10f, 420f)
+        font.draw(uiBatch, "Speed: ${ship.speed}", 10f, 400f)
+        font.draw(uiBatch, "Speed (Cart): ${ship.speed.polarToCartesian()}", 10f, 380f)
         uiBatch.end()
     }
 
     private fun update(dt: Float) {
-        if (input.isKeyPressed(Input.Keys.W)) ship.speed.y += dt * 10
-        if (input.isKeyPressed(Input.Keys.S)) ship.speed.y -= dt * 10
-        if (input.isKeyPressed(Input.Keys.D)) ship.speed.x += dt * 10
-        if (input.isKeyPressed(Input.Keys.A)) ship.speed.x -= dt * 10
+        // --- Handle input ---
 
-        ship.position.mulAdd(ship.speed, dt)
+        // Movement
+        if (input.isKeyPressed(Input.Keys.W)) ship.speed.x += dt * 10
+        if (input.isKeyPressed(Input.Keys.S)) ship.speed.x -= dt * 10
+        if (ship.speed.x < 0) ship.speed.x = 0f
+        if (input.isKeyPressed(Input.Keys.D)) ship.speed.y -= dt * 1
+        if (input.isKeyPressed(Input.Keys.A)) ship.speed.y += dt * 1
+
+        // Actions
+        if (!isRebounding && input.isKeyPressed(Input.Keys.SPACE)) {
+            power += 0.2f * dt
+            power = Math.min(power, 0.5f)
+            camera.zoom = 1 - power
+            isShooting = true
+        } else if (isShooting) {
+            cannonball.position.x = ship.position.x
+            cannonball.position.y = ship.position.y
+
+            cannonball.speed.set(ship.speed.polarToCartesian())
+            if (cannonball.speed.isZero) {
+                cannonball.speed.x = 1f
+            }
+            cannonball.speed.nor().scl(power * 10f)
+            cannonball.lifeRemaining = 3f
+            cannonball.active = true
+
+            power = 0f
+            isShooting = false
+            isRebounding = true
+        }
+
+        // --- End input ---
+
+        // --- Game logic ---
+
+        if (isRebounding) {
+            camera.zoom += 0.4f * dt
+            if (camera.zoom >= 1f) {
+                camera.zoom = 1f
+                isRebounding = false
+            }
+        }
+        ship.position.mulAdd(ship.speed.polarToCartesian(), dt)
         camera.position.x = ship.position.x
         camera.position.y = ship.position.y
+        cannonball.update(dt)
+
+        // --- End logic ---
     }
 
     override fun dispose() {
         // TODO Do we really care?
     }
+}
+
+fun Vector2.polarToCartesian(): Vector2 {
+    val result = Vector2(this)
+    result.x = this.x * MathUtils.cos(this.y)
+    result.y = this.x * MathUtils.sin(this.y)
+    return result
 }
 
