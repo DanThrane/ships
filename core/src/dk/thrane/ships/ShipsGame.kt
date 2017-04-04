@@ -87,9 +87,12 @@ class AsciiMap(
         var i = 0
         for (y in (0..height - 1)) {
             for (x in (0..width - 1)) {
-                val sprite = sheet.sprites[map[i++]]
-                sprite.setPosition(x * tileWidth, y * tileHeight)
-                sprite.draw(batch)
+                val tileIdx = map[i++]
+                if (tileIdx != -1) {
+                    val sprite = sheet.sprites[tileIdx]
+                    sprite.setPosition(x * tileWidth, y * tileHeight)
+                    sprite.draw(batch)
+                }
             }
         }
     }
@@ -150,6 +153,7 @@ class ShipsGame : ApplicationAdapter() {
     lateinit var camera: OrthographicCamera
     lateinit var sheet: SpriteSheet
     lateinit var map: AsciiMap
+    lateinit var background: AsciiMap
     lateinit var cannonball: Projectile
     var isShooting = false
     var isRebounding = false
@@ -172,13 +176,16 @@ class ShipsGame : ApplicationAdapter() {
         camera.update()
 
         sheet = SpriteSheet("tiles_sheet.png", 64, 64, widthInDestination = 1.01f, heightInDestination = 1.01f)
-        map = AsciiMap("map", sheet, 1f, 1f, asciiMapping(mapOf(
+        val mapping = asciiMapping(mapOf(
                 'Q' to 0,
                 'L' to 16,
                 'S' to 67,
                 'R' to 18,
-                'W' to 72
-        )))
+                'W' to 72,
+                '_' to -1
+        ))
+        map = AsciiMap("map", sheet, 1f, 1f, mapping)
+        background = AsciiMap("background", sheet, 1f, 1f, mapping)
 
         ship.init()
     }
@@ -200,6 +207,7 @@ class ShipsGame : ApplicationAdapter() {
         Gdx.gl.glViewport(0, 0, Gdx.graphics.width, Gdx.graphics.height)
 
         batch.begin()
+        background.render(batch, camera)
         map.render(batch, camera)
         ship.render(batch)
         cannonball.render(batch)
