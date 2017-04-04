@@ -228,6 +228,7 @@ class ShipsGame : ApplicationAdapter() {
         if (input.isKeyPressed(Input.Keys.W)) ship.speed.x += dt * 10
         if (input.isKeyPressed(Input.Keys.S)) ship.speed.x -= dt * 10
         if (ship.speed.x < 0) ship.speed.x = 0f
+        if (ship.speed.x > 3) ship.speed.x = 3f
         if (input.isKeyPressed(Input.Keys.D)) ship.speed.y -= dt * 1
         if (input.isKeyPressed(Input.Keys.A)) ship.speed.y += dt * 1
 
@@ -241,11 +242,7 @@ class ShipsGame : ApplicationAdapter() {
             cannonball.position.x = ship.position.x
             cannonball.position.y = ship.position.y
 
-            cannonball.speed.set(ship.speed.polarToCartesian())
-            if (cannonball.speed.isZero) {
-                cannonball.speed.x = 1f
-            }
-            cannonball.speed.nor().scl(power * 10f)
+            cannonball.speed.set(power * 30f, ship.speed.y).setPolarToCartesian()
             cannonball.lifeRemaining = 3f
             cannonball.active = true
 
@@ -276,6 +273,13 @@ class ShipsGame : ApplicationAdapter() {
     override fun dispose() {
         // TODO Do we really care?
     }
+}
+
+fun Vector2.setPolarToCartesian() {
+    val oldX = x
+    val oldY = y
+    x = oldX * MathUtils.cos(oldY)
+    y = oldX * MathUtils.sin(oldY)
 }
 
 fun Vector2.polarToCartesian(): Vector2 {
